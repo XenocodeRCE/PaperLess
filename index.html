@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecteur de Livre Numérique</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Merriweather', serif;
+            line-height: 1.8;
+            background-color: #f7dfc6;
+            color: #3a2f29;
+            overflow-x: hidden;
+            padding-bottom: 120px; /* Espace pour la navigation fixe */
+        }
+        
+        .reader-container {
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid rgba(139, 105, 20, 0.3);
+            margin-bottom: 30px;
+        }
+        
+        .book-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #8b6914;
+            margin-bottom: 8px;
+        }
+        
+        .chapter-title {
+            font-size: 1.1rem;
+            color: #6b4f0f;
+            font-style: italic;
+            font-weight: 400;
+        }
+        
+        .content {
+            flex: 1;
+            font-size: 1.1rem;
+            font-weight: 300;
+            text-align: justify;
+            padding: 0 10px;
+            margin-bottom: 40px; /* Espace supplémentaire avant la navigation fixe */
+            transition: transform 0.3s ease-out, opacity 0.2s ease-out;
+        }
+        
+        .content p {
+            margin-bottom: 1.8em;
+            text-indent: 1.5em;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .content p:first-child {
+            text-indent: 0;
+        }
+        
+        .content h1, .content h2, .content h3 {
+            color: #8b6914;
+            margin: 1.5em 0 1em 0;
+            font-weight: 700;
+        }
+        
+        .content h1 {
+            font-size: 1.4rem;
+            border-bottom: 2px solid rgba(139, 105, 20, 0.3);
+            padding-bottom: 0.5em;
+        }
+        
+        .content h2 {
+            font-size: 1.2rem;
+        }
+        
+        .content h3 {
+            font-size: 1.1rem;
+        }
+        
+        .content strong {
+            font-weight: 700;
+            color: #6b4f0f;
+        }
+        
+        .content em {
+            font-style: italic;
+            color: #8b6914;
+        }
+        
+        .content ul {
+            margin: 1em 0;
+            padding-left: 2em;
+        }
+        
+        .content li {
+            margin-bottom: 0.5em;
+            list-style-type: disc;
+        }
+        
+        /* Styles pour les images dans le contenu */
+        .image-container {
+            margin: 2em 0;
+            text-align: center;
+        }
+        
+        .book-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(139, 105, 20, 0.2);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .book-image:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(139, 105, 20, 0.3);
+        }
+        
+        .image-caption {
+            font-size: 0.9rem;
+            color: var(--accent-color, #8b6914);
+            font-style: italic;
+            margin-top: 0.8em;
+            line-height: 1.4;
+        }
+        
+        /* Mode plein écran pour les images */
+        .image-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            cursor: pointer;
+        }
+        
+        .image-fullscreen img {
+            max-width: 95%;
+            max-height: 95%;
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .image-fullscreen .close-fullscreen {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.5);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+        
+        .image-fullscreen .close-fullscreen:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        
+        /* Responsive pour les images */
+        @media (max-width: 768px) {
+            .image-container {
+                margin: 1.5em 0;
+            }
+            
+            .image-caption {
+                font-size: 0.8rem;
+                margin-top: 0.6em;
+            }
+        }
+        
+        .navigation {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: rgba(247, 223, 198, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 2px solid #8b6914;
+            box-shadow: 0 -4px 20px rgba(139, 105, 20, 0.1);
+            z-index: 100;
+        }
+        
+        .nav-button {
+            background: #8b6914;
+            color: #f7dfc6;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            min-width: 120px;
+            box-shadow: 0 2px 8px rgba(139, 105, 20, 0.2);
+        }
+        
+        .nav-button:hover {
+            background: #6b4f0f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 105, 20, 0.3);
+        }
+        
+        .nav-button:disabled {
+            background: #b8a082;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .page-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .page-number {
+            font-size: 0.95rem;
+            color: #8b6914;
+            font-weight: 600;
+        }
+        
+        .progress-bar {
+            width: 200px;
+            height: 6px;
+            background: rgba(139, 105, 20, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid rgba(139, 105, 20, 0.3);
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #8b6914;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .settings {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .chapters-menu {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+        
+        .settings-button, .chapters-button {
+            background: rgba(247, 223, 198, 0.9);
+            border: 2px solid #8b6914;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            color: #8b6914;
+        }
+        
+        .settings-button:hover, .chapters-button:hover {
+            background: #8b6914;
+            color: #f7dfc6;
+        }
+        
+        .settings-panel, .chapters-panel {
+            position: absolute;
+            top: 50px;
+            background: var(--bg-color, #f7dfc6);
+            border: 2px solid var(--border-color, #8b6914);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            min-width: 280px;
+            display: none;
+            color: var(--text-color, #3a2f29);
+        }
+        
+        .settings-panel {
+            right: 0;
+        }
+        
+        .chapters-panel {
+            left: 0;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .settings-panel.active, .chapters-panel.active {
+            display: block;
+        }
+        
+        .setting-section {
+            margin-bottom: 25px;
+        }
+        
+        .setting-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .setting-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-color, #8b6914);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .brightness-slider {
+            width: 100%;
+            height: 6px;
+            background: rgba(139, 105, 20, 0.2);
+            border-radius: 3px;
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+        }
+        
+        .brightness-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #8b6914;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .brightness-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #8b6914;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .font-size-options {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .font-size-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--border-color, #8b6914);
+            background: transparent;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--text-color, #3a2f29);
+            transition: all 0.2s ease;
+        }
+        
+        .font-size-btn.active {
+            background: var(--accent-color, #8b6914);
+            color: var(--bg-color, #f7dfc6);
+        }
+        
+        .font-family-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .font-family-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid var(--border-color, #8b6914);
+            background: transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-color, #3a2f29);
+            transition: all 0.2s ease;
+            min-width: 70px;
+        }
+        
+        .font-family-btn.active {
+            background: var(--accent-color, #8b6914);
+            color: var(--bg-color, #f7dfc6);
+        }
+        
+        .theme-toggle {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        
+        .theme-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color, #8b6914);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .theme-circle.active {
+            background: var(--accent-color, #8b6914);
+        }
+        
+        .theme-circle.active::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--bg-color, #f7dfc6);
+            border-radius: 50%;
+        }
+        
+        /* Mode sombre */
+        body.dark-mode {
+            --bg-color: #2d2d2d;
+            --text-color: #e0e0e0;
+            --accent-color: #ff6b35;
+            --border-color: #555;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        
+        body.dark-mode .navigation {
+            background: rgba(45, 45, 45, 0.95);
+            border-top: 2px solid var(--border-color);
+        }
+        
+        body.dark-mode .nav-button {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+        
+        body.dark-mode .nav-button:hover {
+            background: #e55a2b;
+        }
+        
+        body.dark-mode .nav-button:disabled {
+            background: #666;
+        }
+        
+        body.dark-mode .settings-button, body.dark-mode .chapters-button {
+            background: rgba(45, 45, 45, 0.9);
+            border-color: var(--border-color);
+            color: var(--accent-color);
+        }
+        
+        body.dark-mode .settings-button:hover, body.dark-mode .chapters-button:hover {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+        
+        /* Styles pour le menu des chapitres */
+        .chapters-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .chapter-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            line-height: 1.3;
+        }
+        
+        .chapter-item:hover {
+            border-color: var(--accent-color, #8b6914);
+            background: rgba(139, 105, 20, 0.1);
+        }
+        
+        .chapter-item.current {
+            background: var(--accent-color, #8b6914);
+            color: var(--bg-color, #f7dfc6);
+            font-weight: 600;
+        }
+        
+        .chapter-item.current:hover {
+            background: var(--accent-color, #8b6914);
+            border-color: var(--accent-color, #8b6914);
+        }
+        
+        .chapter-number {
+            font-weight: 600;
+            color: var(--accent-color, #8b6914);
+            margin-right: 8px;
+        }
+        
+        .chapter-item.current .chapter-number {
+            color: var(--bg-color, #f7dfc6);
+        }
+        
+        .chapters-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-color, #8b6914);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 140px; /* Plus d'espace sur tablette */
+            }
+            
+            .reader-container {
+                padding: 15px;
+            }
+            
+            .book-title {
+                font-size: 1.5rem;
+            }
+            
+            .content {
+                font-size: 1rem;
+                padding: 0;
+            }
+            
+            .navigation {
+                padding: 15px 20px;
+            }
+            
+            .nav-button {
+                padding: 12px 20px;
+                font-size: 0.95rem;
+                min-width: 100px;
+            }
+            
+            .progress-bar {
+                width: 120px;
+            }
+            
+            .settings {
+                top: 15px;
+                right: 15px;
+            }
+            
+            .chapters-menu {
+                top: 15px;
+                left: 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding-bottom: 100px; /* Réduit l'espace nécessaire */
+            }
+            
+            .navigation {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 10px 15px;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .nav-buttons {
+                display: flex;
+                gap: 10px;
+                flex: 1;
+                justify-content: space-between;
+            }
+            
+            .nav-button {
+                flex: 1;
+                min-width: 0;
+                padding: 10px 12px;
+                font-size: 0.85rem;
+                border-radius: 6px;
+            }
+            
+            .page-info {
+                width: 100%;
+                order: 2;
+                margin-top: 8px;
+                gap: 6px;
+            }
+            
+            .page-number {
+                font-size: 0.85rem;
+            }
+            
+            .progress-bar {
+                width: 100%;
+                max-width: 180px;
+                height: 4px;
+            }
+        }
+        
+        @media (max-width: 320px) {
+            body {
+                padding-bottom: 85px; /* Encore moins d'espace sur très petits écrans */
+            }
+            
+            .navigation {
+                padding: 8px 10px;
+                gap: 6px;
+            }
+            
+            .nav-button {
+                padding: 8px 10px;
+                font-size: 0.8rem;
+            }
+            
+            .page-number {
+                font-size: 0.8rem;
+            }
+            
+            .progress-bar {
+                max-width: 150px;
+                height: 3px;
+            }
+            
+            .content {
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="reader-container">
+        <div class="header">
+            <p class="chapter-title">Chapitre 1 : Le Commencement</p>
+        </div>
+        
+        <div class="content" id="content">
+            <p>Bienvenue dans cette aventure littéraire ! Ce lecteur a été conçu spécialement pour offrir une expérience de lecture agréable sur tous les appareils.</p>
+            
+            <p>La typographie soigneusement choisie, les espacements optimaux et la mise en page responsive garantissent un confort de lecture optimal, que vous lisiez sur votre téléphone pendant vos trajets ou sur votre ordinateur chez vous.</p>
+            
+            <p>Chaque page est pensée pour ne pas fatiguer vos yeux, avec des marges généreuses et une longueur de ligne idéale pour une lecture fluide.</p>
+            
+            <p>Vous pouvez naviguer facilement entre les pages grâce aux boutons de navigation en bas de page, et suivre votre progression grâce à la barre de progression.</p>
+            
+            <p>N'hésitez pas à utiliser les paramètres pour ajuster la taille du texte selon vos préférences. Bonne lecture !</p>
+        </div>
+        
+        <div class="navigation">
+            <div class="nav-buttons">
+                <button class="nav-button" id="prevBtn" onclick="previousPage()">← Précédent</button>
+            </div>
+            
+            <div class="page-info">
+                <div class="page-number" id="pageNumber">Page 1 sur 3</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            
+            <div class="nav-buttons">
+                <button class="nav-button" id="nextBtn" onclick="nextPage()">Suivant →</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="chapters-menu">
+        <button class="chapters-button" onclick="toggleChapters()">📚</button>
+        <div class="chapters-panel" id="chaptersPanel">
+            <div class="chapters-title">Chapitres</div>
+            <ul class="chapters-list" id="chaptersList">
+                <!-- Les chapitres seront générés dynamiquement -->
+            </ul>
+        </div>
+    </div>
+    
+    <div class="settings">
+        <button class="settings-button" onclick="toggleSettings()">⚙️</button>
+        <div class="settings-panel" id="settingsPanel">
+            
+            <div class="setting-section">
+                <div class="setting-title">Luminosité</div>
+                <input type="range" class="brightness-slider" min="0.3" max="1" step="0.1" value="1" onchange="changeBrightness(this.value)">
+            </div>
+            
+            <div class="setting-section">
+                <div class="setting-title">Taille du texte</div>
+                <div class="font-size-options">
+                    <button class="font-size-btn" data-size="16" onclick="setFontSize(16)">A</button>
+                    <button class="font-size-btn active" data-size="19" onclick="setFontSize(19)">A</button>
+                    <button class="font-size-btn" data-size="22" onclick="setFontSize(22)">A</button>
+                </div>
+            </div>
+            
+            <div class="setting-section">
+                <div class="setting-title">Police</div>
+                <div class="font-family-options">
+                    <button class="font-family-btn active" data-font="serif" onclick="setFontFamily('serif')">Serif</button>
+                    <button class="font-family-btn" data-font="sans" onclick="setFontFamily('sans')">Sans</button>
+                    <button class="font-family-btn" data-font="mono" onclick="setFontFamily('mono')">Mono</button>
+                </div>
+            </div>
+            
+            <div class="setting-section">
+                <div class="setting-title">Thème</div>
+                <div class="theme-toggle">
+                    <div class="theme-option" onclick="setTheme('light')">
+                        <div class="theme-circle active" id="lightTheme"></div>
+                        <span>Jour</span>
+                    </div>
+                    <div class="theme-option" onclick="setTheme('dark')">
+                        <div class="theme-circle" id="darkTheme"></div>
+                        <span>Nuit</span>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <script>
+        // Variables globales
+        let pages = [];
+        let currentPage = 0;
+        
+        // Parser Markdown simple
+        function parseMarkdown(text) {
+            // Convertir les images avec styles adaptatifs
+            text = text.replace(/!\[(.*?)\]\((.*?)\)/gim, function(match, alt, src) {
+                return `<div class="image-container">
+                    <img src="${src}" alt="${alt}" class="book-image" loading="lazy">
+                    ${alt ? `<div class="image-caption">${alt}</div>` : ''}
+                </div>`;
+            });
+            
+            // Convertir les titres
+            text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            text = text.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            text = text.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            
+            // Convertir le texte en gras et italique
+            text = text.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+            text = text.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+            
+            // Convertir les listes
+            text = text.replace(/^\- (.*$)/gim, '<li>$1</li>');
+            text = text.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+            text = text.replace(/<\/ul>\s*<ul>/g, '');
+            
+            // Convertir les paragraphes (lignes non vides qui ne sont pas des titres ou listes)
+            const lines = text.split('\n');
+            const processedLines = lines.map(line => {
+                line = line.trim();
+                if (line === '') return '';
+                if (line.startsWith('<h') || line.startsWith('<li') || line.startsWith('<ul') || line.startsWith('</ul>') || line.startsWith('<div class="image-container">')) {
+                    return line;
+                }
+                return `<p>${line}</p>`;
+            });
+            
+            return processedLines.join('\n');
+        }
+        
+        // Charger le fichier Markdown
+        async function loadMarkdownBook() {
+            try {
+                const response = await fetch('book.md');
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+                const markdown = await response.text();
+                
+                // Vérifier s'il y a une image de couverture au début dans un bloc de code
+                let coverPage = null;
+                let bookContent = markdown;
+                let bookTitle = "Lecteur de Livre Numérique"; // Titre par défaut
+                
+                // Regex pour détecter un bloc de code avec titre et image
+                const coverBlockMatch = markdown.match(/^\s*```\s*\n([\s\S]*?)\n\s*```\s*/);
+                if (coverBlockMatch) {
+                    const coverContent = coverBlockMatch[1].trim();
+                    
+                    // Chercher le titre dans le bloc
+                    const titleMatch = coverContent.match(/^title:\s*(.+)$/m);
+                    if (titleMatch) {
+                        bookTitle = titleMatch[1].trim();
+                    }
+                    
+                    // Chercher l'image dans le bloc
+                    const imageMatch = coverContent.match(/!\[(.*?)\]\((.*?)\)/);
+                    if (imageMatch) {
+                        const imageMarkdown = `![${imageMatch[1]}](${imageMatch[2]})`;
+                        coverPage = {
+                            title: "Couverture",
+                            content: parseMarkdown(imageMarkdown)
+                        };
+                    }
+                    
+                    // Retirer le bloc de couverture du contenu principal
+                    bookContent = markdown.replace(/^\s*```\s*\n[\s\S]*?\n\s*```\s*/, '');
+                }
+                
+                // Mettre à jour le titre de la page web
+                document.title = bookTitle;
+                
+                // Découper en chapitres basés sur les titres de niveau 1
+                const chapters = bookContent.split(/^# /gm).filter(chapter => chapter.trim());
+                
+                pages = chapters.map((chapter, index) => {
+                    const lines = chapter.trim().split('\n');
+                    const title = `Chapitre ${index + 1} : ${lines[0]}`;
+                    const content = parseMarkdown(lines.slice(1).join('\n'));
+                    
+                    return {
+                        title: title,
+                        content: content
+                    };
+                });
+                
+                // Ajouter la page de couverture au début s'il y en a une
+                if (coverPage) {
+                    pages.unshift(coverPage);
+                }
+                
+                // Si aucun chapitre trouvé, traiter tout le contenu comme un seul chapitre
+                if (pages.length === 0) {
+                    pages = [{
+                        title: "Chapitre 1",
+                        content: parseMarkdown(bookContent)
+                    }];
+                }
+                
+                // Générer le menu des chapitres
+                generateChaptersMenu();
+                
+                // Initialiser l'affichage
+                updatePage();
+                
+            } catch (error) {
+                console.error('Erreur lors du chargement du livre:', error);
+                // Contenu de secours
+                pages = [{
+                    title: "Erreur de chargement",
+                    content: "<p>Impossible de charger le fichier book.md. Veuillez vérifier qu'il existe dans le même dossier que index.html.</p><p>Créez un fichier book.md avec vos chapitres séparés par des titres # pour commencer à écrire votre livre !</p>"
+                }];
+                updatePage();
+            }
+        }
+        
+        function updatePage(direction = null) {
+            const content = document.getElementById('content');
+            const header = document.querySelector('.header');
+            const chapterTitle = document.querySelector('.chapter-title');
+            const pageNumber = document.getElementById('pageNumber');
+            const progressFill = document.getElementById('progressFill');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageInfo = document.querySelector('.page-info');
+            
+            // Animation de transition si une direction est spécifiée
+            if (direction) {
+                // Animation de sortie
+                content.style.opacity = '0';
+                content.style.transform = direction === 'next' ? 'translateX(-30px)' : 'translateX(30px)';
+                
+                setTimeout(() => {
+                    // Mise à jour du contenu
+                    content.innerHTML = pages[currentPage].content;
+                    
+                    // Configurer les gestionnaires d'images après mise à jour du contenu
+                    setupImageClickHandlers();
+                    
+                    // Animation d'entrée
+                    content.style.transform = direction === 'next' ? 'translateX(30px)' : 'translateX(-30px)';
+                    
+                    setTimeout(() => {
+                        content.style.opacity = '1';
+                        content.style.transform = 'translateX(0)';
+                    }, 50);
+                }, 200);
+            } else {
+                // Mise à jour normale sans animation
+                content.innerHTML = pages[currentPage].content;
+                
+                // Configurer les gestionnaires d'images après mise à jour du contenu
+                setupImageClickHandlers();
+            }
+            
+            // Gérer l'affichage selon le type de page
+            if (pages[currentPage].title === "Couverture") {
+                // Masquer complètement le header pour la couverture
+                header.style.display = 'none';
+                // Masquer le bouton précédent et les infos de page sur la couverture
+                prevBtn.style.display = 'none';
+                pageInfo.style.display = 'none';
+            } else {
+                // Afficher le header avec seulement le titre du chapitre
+                header.style.display = 'block';
+                chapterTitle.textContent = pages[currentPage].title;
+                // Réafficher les éléments de navigation
+                prevBtn.style.display = 'block';
+                pageInfo.style.display = 'flex';
+            }
+            
+            // Mise à jour de la pagination
+            pageNumber.textContent = `Page ${currentPage + 1} sur ${pages.length}`;
+            
+            // Mise à jour de la barre de progression
+            const progress = ((currentPage + 1) / pages.length) * 100;
+            progressFill.style.width = progress + '%';
+            
+            // Mise à jour des boutons
+            prevBtn.disabled = currentPage === 0;
+            nextBtn.disabled = currentPage === pages.length - 1;
+            
+            // Mettre à jour le chapitre actuel dans le menu
+            updateCurrentChapterInMenu();
+            
+            // Scroll vers le haut
+            window.scrollTo(0, 0);
+        }
+        
+        function nextPage() {
+            if (currentPage < pages.length - 1) {
+                currentPage++;
+                updatePage('next');
+            }
+        }
+        
+        function previousPage() {
+            if (currentPage > 0) {
+                currentPage--;
+                updatePage('prev');
+            }
+        }
+        
+        // Variables pour contrôler l'état des menus
+        let isSettingsOpen = false;
+        let isChaptersOpen = false;
+        
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            const chaptersPanel = document.getElementById('chaptersPanel');
+            
+            // Fermer le menu des chapitres si ouvert
+            if (isChaptersOpen) {
+                chaptersPanel.classList.remove('active');
+                isChaptersOpen = false;
+            }
+            
+            panel.classList.toggle('active');
+            isSettingsOpen = panel.classList.contains('active');
+        }
+        
+        function toggleChapters() {
+            const panel = document.getElementById('chaptersPanel');
+            const settingsPanel = document.getElementById('settingsPanel');
+            
+            // Fermer le menu des paramètres si ouvert
+            if (isSettingsOpen) {
+                settingsPanel.classList.remove('active');
+                isSettingsOpen = false;
+            }
+            
+            panel.classList.toggle('active');
+            isChaptersOpen = panel.classList.contains('active');
+        }
+        
+        // Fonctions de paramètres
+        function changeBrightness(value) {
+            // Appliquer la luminosité à toute la page, pas juste le body
+            const root = document.documentElement;
+            root.style.filter = `brightness(${value})`;
+        }
+        
+        function setFontSize(size) {
+            const content = document.getElementById('content');
+            content.style.fontSize = size + 'px';
+            
+            // Mettre à jour les boutons actifs
+            document.querySelectorAll('.font-size-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.size == size) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+        
+        function setFontFamily(type) {
+            const content = document.getElementById('content');
+            let fontFamily;
+            
+            switch(type) {
+                case 'serif':
+                    fontFamily = "'Merriweather', serif";
+                    break;
+                case 'sans':
+                    fontFamily = "'Inter', 'Arial', sans-serif";
+                    break;
+                case 'mono':
+                    fontFamily = "'Fira Code', 'Courier New', monospace";
+                    break;
+            }
+            
+            content.style.fontFamily = fontFamily;
+            
+            // Mettre à jour les boutons actifs
+            document.querySelectorAll('.font-family-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.font === type) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+        
+        function setTheme(theme) {
+            const body = document.body;
+            const lightCircle = document.getElementById('lightTheme');
+            const darkCircle = document.getElementById('darkTheme');
+            
+            if (theme === 'dark') {
+                body.classList.add('dark-mode');
+                lightCircle.classList.remove('active');
+                darkCircle.classList.add('active');
+            } else {
+                body.classList.remove('dark-mode');
+                darkCircle.classList.remove('active');
+                lightCircle.classList.add('active');
+            }
+        }
+        
+        // Navigation au clavier
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                previousPage();
+            } else if (e.key === 'ArrowRight') {
+                nextPage();
+            }
+        });
+        
+        // Navigation par glissement tactile (swipe)
+        let startX = 0;
+        let startY = 0;
+        let endX = 0;
+        let endY = 0;
+        
+        document.addEventListener('touchstart', function(e) {
+            // Ne pas enregistrer le touch si un menu est ouvert
+            if (!isSettingsOpen && !isChaptersOpen) {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            }
+        });
+        
+        document.addEventListener('touchend', function(e) {
+            // Ne pas traiter le swipe si un menu est ouvert
+            if (!isSettingsOpen && !isChaptersOpen) {
+                endX = e.changedTouches[0].clientX;
+                endY = e.changedTouches[0].clientY;
+                handleSwipe();
+            }
+        });
+        
+        function handleSwipe() {
+            const deltaX = endX - startX;
+            const deltaY = endY - startY;
+            
+            // Vérifier que c'est bien un glissement horizontal (pas vertical)
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+                if (deltaX > 0) {
+                    // Glissement vers la droite = page précédente
+                    previousPage();
+                } else {
+                    // Glissement vers la gauche = page suivante
+                    nextPage();
+                }
+            }
+        }
+        
+        // Fermer les menus en cliquant ailleurs
+        document.addEventListener('click', function(e) {
+            const settings = document.querySelector('.settings');
+            const chapters = document.querySelector('.chapters-menu');
+            const settingsPanel = document.getElementById('settingsPanel');
+            const chaptersPanel = document.getElementById('chaptersPanel');
+            
+            // Fermer le menu des paramètres si on clique ailleurs
+            if (!settings.contains(e.target) && settingsPanel.classList.contains('active')) {
+                settingsPanel.classList.remove('active');
+                isSettingsOpen = false;
+            }
+            
+            // Fermer le menu des chapitres si on clique ailleurs
+            if (!chapters.contains(e.target) && chaptersPanel.classList.contains('active')) {
+                chaptersPanel.classList.remove('active');
+                isChaptersOpen = false;
+            }
+        });
+        
+        // Générer le menu des chapitres
+        function generateChaptersMenu() {
+            const chaptersList = document.getElementById('chaptersList');
+            chaptersList.innerHTML = '';
+            
+            pages.forEach((page, index) => {
+                const li = document.createElement('li');
+                li.className = 'chapter-item';
+                li.setAttribute('data-page', index);
+                
+                if (page.title === "Couverture") {
+                    li.innerHTML = `<span class="chapter-number">📖</span>Couverture`;
+                } else {
+                    // Extraire le numéro et le titre du chapitre
+                    const match = page.title.match(/Chapitre (\d+) : (.+)/);
+                    if (match) {
+                        li.innerHTML = `<span class="chapter-number">${match[1]}.</span>${match[2]}`;
+                    } else {
+                        li.innerHTML = `<span class="chapter-number">${index}.</span>${page.title}`;
+                    }
+                }
+                
+                li.addEventListener('click', function() {
+                    goToPage(index);
+                    // Fermer le menu après sélection
+                    document.getElementById('chaptersPanel').classList.remove('active');
+                    isChaptersOpen = false;
+                });
+                
+                chaptersList.appendChild(li);
+            });
+        }
+        
+        // Aller à une page spécifique
+        function goToPage(pageIndex) {
+            if (pageIndex >= 0 && pageIndex < pages.length && pageIndex !== currentPage) {
+                const direction = pageIndex > currentPage ? 'next' : 'prev';
+                currentPage = pageIndex;
+                updatePage(direction);
+            }
+        }
+        
+        // Mettre à jour le chapitre actuel dans le menu
+        function updateCurrentChapterInMenu() {
+            const items = document.querySelectorAll('.chapter-item');
+            items.forEach((item, index) => {
+                if (index === currentPage) {
+                    item.classList.add('current');
+                } else {
+                    item.classList.remove('current');
+                }
+            });
+        }
+        
+        // Gestion des images en plein écran
+        function setupImageClickHandlers() {
+            const images = document.querySelectorAll('.book-image');
+            images.forEach(img => {
+                img.addEventListener('click', function() {
+                    if (isSettingsOpen) return; // Ne pas ouvrir en plein écran si le menu est ouvert
+                    
+                    const fullscreen = document.createElement('div');
+                    fullscreen.className = 'image-fullscreen';
+                    
+                    const closeBtn = document.createElement('div');
+                    closeBtn.className = 'close-fullscreen';
+                    closeBtn.innerHTML = '×';
+                    
+                    const imgClone = this.cloneNode();
+                    imgClone.style.cursor = 'default';
+                    
+                    fullscreen.appendChild(closeBtn);
+                    fullscreen.appendChild(imgClone);
+                    document.body.appendChild(fullscreen);
+                    
+                    // Fermer en cliquant sur la croix ou l'arrière-plan
+                    const closeFullscreen = () => {
+                        document.body.removeChild(fullscreen);
+                    };
+                    
+                    closeBtn.addEventListener('click', closeFullscreen);
+                    fullscreen.addEventListener('click', function(e) {
+                        if (e.target === fullscreen) {
+                            closeFullscreen();
+                        }
+                    });
+                    
+                    // Fermer avec Escape
+                    const escapeHandler = (e) => {
+                        if (e.key === 'Escape') {
+                            closeFullscreen();
+                            document.removeEventListener('keydown', escapeHandler);
+                        }
+                    };
+                    document.addEventListener('keydown', escapeHandler);
+                });
+            });
+        }
+        
+        // Initialisation - Charger le livre Markdown
+        loadMarkdownBook();
+    </script>
+</body>
+</html>
