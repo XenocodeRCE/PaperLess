@@ -46,7 +46,7 @@ Un lecteur de livre élégant et moderne qui transforme vos fichiers Markdown en
 
 1. **Clonez le repository**
 ```bash
-git clone https://github.com/votre-username/lecteur-livre-numerique.git
+git clone https://github.com/XenocodeRCE/PaperLess.git
 cd lecteur-livre-numerique
 ```
 
@@ -142,11 +142,6 @@ Le texte continue après l'image...
 
 Les contributions sont les bienvenues ! 
 
-1. Fork le projet
-2. Créez votre branche (`git checkout -b ma-nouvelle-fonctionnalite`)
-3. Commitez vos changements (`git commit -m 'Ajout d'une fonctionnalité'`)
-4. Push vers la branche (`git push origin ma-nouvelle-fonctionnalite`)
-5. Ouvrez une Pull Request
 
 ## 📄 License
 
